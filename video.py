@@ -102,6 +102,5 @@ def get_camera(frame):
 
     similarities = [similarity(cropped_frame, t) for t in to_match]
     similarities = np.array(similarities)
-    print(similarities)
 
     return ["A", "B", "C", "A", "B", "C"][np.argmax(similarities)]
