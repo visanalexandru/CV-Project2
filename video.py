@@ -19,6 +19,9 @@ CAMERA_C_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_c_night.png")
 class Frame:
     def __init__(self, frame):
         self.frame_ = frame 
+    
+    def raw(self):
+        return self.frame_
 
 class Video:
     def __init__(self, frames):
@@ -29,7 +32,7 @@ class Video:
     
     def compute_camera(self):
         first_frame = self.frames_[0]
-        self.camera_ = get_camera(first_frame)
+        self.camera_ = get_camera(first_frame.raw())
     
     def get_camera(self):
         return self.camera_
@@ -52,7 +55,7 @@ def load_video(path, num_frames=None):
         frame = cv.resize(frame, (FRAME_WIDTH, FRAME_HEIGHT), cv.INTER_CUBIC)
         frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
 
-        frames.append(frame)
+        frames.append(Frame(frame))
 
         if num_frames is not None and len(frames) >= num_frames:
             break
