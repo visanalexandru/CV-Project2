@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # The original shape was 1920x1000
-# We downscale it while keeping the same aspect ratio.
-FRAME_WIDTH = 960 
-FRAME_HEIGHT = 500 
+# Change this if you want to use a different resolution.
+FRAME_WIDTH = 1920 
+FRAME_HEIGHT = 1000 
 
 CAMERA_A_TEMPLATE_DAY = cv.imread("camera_templates/camera_a_day.png")
 CAMERA_B_TEMPLATE_DAY = cv.imread("camera_templates/camera_b_day.png")
@@ -35,10 +35,15 @@ class Video:
         return self.camera_
 
 
-def load_video(path):
+# Loads a video from the given path and returns a Video object.
+# If num_frames is specified, it will only load that many frames.
+def load_video(path, num_frames=None):
     frames = []
-    cap = cv.VideoCapture(path)
 
+    if num_frames == 0:
+        return Video(frames)
+
+    cap = cv.VideoCapture(path)
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
@@ -48,6 +53,9 @@ def load_video(path):
         frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
 
         frames.append(frame)
+
+        if num_frames is not None and len(frames) >= num_frames:
+            break
     return Video(frames)
 
 # Returns a cropped region of the frame that represents the content above the 
