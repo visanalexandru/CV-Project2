@@ -1,6 +1,7 @@
 import cv2 as cv
 import matplotlib.pyplot as plt
 import numpy as np
+from ultralytics import YOLO
 
 # The original shape was 1920x1000
 # Change this if you want to use a different resolution.
@@ -15,6 +16,7 @@ CAMERA_A_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_a_night.png")
 CAMERA_B_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_b_night.png")
 CAMERA_C_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_c_night.png")
 
+detection_model = YOLO("yolo11m.pt")
 
 class Frame:
     def __init__(self, frame):
@@ -22,6 +24,32 @@ class Frame:
     
     def raw(self):
         return self.frame_
+    
+    def detect_objects(self):
+        result = detection_model(self.frame_)[0]
+        names = result.names
+        objects = []
+
+        for box in result.boxes:
+            cls = box.cls.item()
+
+            if names[cls] not in ["car", "truck", "bus", "motorcycle", "bicycle"]:
+                continue
+        
+            x1, y1, x2, y2 = box.xyxy[0]
+            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+
+            objects.append({
+                "class": names[cls],
+                "bbox": [x1, y1, x2, y2], 
+            })
+
+        self.objects_ = objects
+    
+    def get_objects(self):
+        if not hasattr(self, 'objects_'):
+            self.detect_objects()
+        return self.objects_
 
 class Video:
     def __init__(self, frames):
@@ -35,8 +63,12 @@ class Video:
         self.camera_ = get_camera(first_frame.raw())
     
     def get_camera(self):
+        if not hasattr(self, 'camera_'):
+            self.compute_camera()
         return self.camera_
-
+    
+    def num_frames(self):
+        return len(self.frames_)
 
 # Loads a video from the given path and returns a Video object.
 # If num_frames is specified, it will only load that many frames.
