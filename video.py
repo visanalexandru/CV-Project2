@@ -16,7 +16,7 @@ CAMERA_A_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_a_night.png")
 CAMERA_B_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_b_night.png")
 CAMERA_C_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_c_night.png")
 
-detection_model = YOLO("yolo11m.pt")
+detection_model = YOLO("yolov10m.pt")
 
 class Frame:
     def __init__(self, frame):
@@ -26,7 +26,8 @@ class Frame:
         return self.frame_
     
     def detect_objects(self):
-        result = detection_model(self.frame_)[0]
+        result = detection_model.predict(self.frame_, verbose=False, iou=0.1)[0]
+        print(result.shape)
         names = result.names
         objects = []
 
@@ -34,6 +35,8 @@ class Frame:
             cls = box.cls.item()
 
             if names[cls] not in ["car", "truck", "bus", "motorcycle", "bicycle"]:
+                continue
+            if box.conf < 0.5:
                 continue
         
             x1, y1, x2, y2 = box.xyxy[0]
