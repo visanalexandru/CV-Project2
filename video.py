@@ -27,7 +27,6 @@ class Frame:
     
     def detect_objects(self):
         result = detection_model.predict(self.frame_, verbose=False, iou=0.1)[0]
-        print(result.shape)
         names = result.names
         objects = []
 
