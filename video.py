@@ -16,7 +16,7 @@ CAMERA_A_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_a_night.png")
 CAMERA_B_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_b_night.png")
 CAMERA_C_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_c_night.png")
 
-detection_model = YOLO("yolov10m.pt")
+detection_model = YOLO("yolov10x.pt")
 
 class Frame:
     def __init__(self, frame):
@@ -26,7 +26,7 @@ class Frame:
         return self.frame_
     
     def detect_objects(self):
-        result = detection_model.predict(self.frame_, verbose=False, iou=0.1)[0]
+        result = detection_model.predict(self.frame_, verbose=False, iou=0.01, agnostic_nms=True)[0]
         names = result.names
         objects = []
 
@@ -35,11 +35,16 @@ class Frame:
 
             if names[cls] not in ["car", "truck", "bus", "motorcycle", "bicycle"]:
                 continue
-            if box.conf < 0.5:
+
+            if box.conf < 0.4:
                 continue
         
             x1, y1, x2, y2 = box.xyxy[0]
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+            area = (x2 - x1) * (y2 - y1)
+
+            if area < 4000:  # Filter out small objects
+                continue
 
             objects.append({
                 "class": names[cls],
