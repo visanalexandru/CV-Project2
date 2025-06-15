@@ -16,7 +16,7 @@ CAMERA_A_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_a_night.png")
 CAMERA_B_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_b_night.png")
 CAMERA_C_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_c_night.png")
 
-detection_model = YOLO("yolov10x.pt")
+detection_model = YOLO("yolov9e.pt")
 
 class Frame:
     def __init__(self, frame):
@@ -25,38 +25,35 @@ class Frame:
     def raw(self):
         return self.frame_
     
-    def detect_objects(self):
-        result = detection_model.predict(self.frame_, verbose=False, iou=0.01, agnostic_nms=True)[0]
-        names = result.names
-        objects = []
-
-        for box in result.boxes:
-            cls = box.cls.item()
-
-            if names[cls] not in ["car", "truck", "bus", "motorcycle", "bicycle"]:
-                continue
-
-            if box.conf < 0.4:
-                continue
-        
-            x1, y1, x2, y2 = box.xyxy[0]
-            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-            area = (x2 - x1) * (y2 - y1)
-
-            if area < 4000:  # Filter out small objects
-                continue
-
-            objects.append({
-                "class": names[cls],
-                "bbox": [x1, y1, x2, y2], 
-            })
-
-        self.objects_ = objects
-    
     def get_objects(self):
-        if not hasattr(self, 'objects_'):
-            self.detect_objects()
         return self.objects_
+
+def extract_objects(result):
+    names = result.names
+    objects = []
+
+    for box in result.boxes:
+        label = int(box.cls.item())
+        cls = names[label]
+        x1, y1, x2, y2 = box.xyxy[0]
+        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+        bbox = [x1, y1, x2, y2]
+
+        if cls not in ["car", "truck", "bus", "motorcycle", "bicycle"]:
+            continue
+
+        obj = {
+            "class": cls,
+            "bbox": bbox
+        }
+
+        area = (x2 - x1) * (y2 - y1)
+        if area < 4000:  # Filter out small objects
+            continue
+
+        objects.append(obj)
+
+    return objects
 
 class Video:
     def __init__(self, frames):
@@ -76,6 +73,12 @@ class Video:
     
     def num_frames(self):
         return len(self.frames_)
+    
+    def do_tracking(self):
+        for frame in self.frames_:
+            result = detection_model.predict(frame.raw(), verbose=False, iou=0.1, agnostic_nms=True)[0]
+            frame.objects_ = extract_objects(result)
+
 
 # Loads a video from the given path and returns a Video object.
 # If num_frames is specified, it will only load that many frames.
