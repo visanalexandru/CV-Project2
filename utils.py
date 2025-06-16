@@ -47,7 +47,10 @@ def get_keypoints(frame, current_camera, other_camera, homography):
         
         if current_camera == "B" and other_camera == "A":
             # This is not visible in camera A
-            if position[0] > 800 and position[0] <1060 and position[1] < 800:
+            if x1 > 800 and x2 <1060 and position[1] < 800:
+                continue
+        if current_camera == "A" and other_camera == "B":
+            if object["class"] == "person" and position[0] < 500:
                 continue
 
         if object["class"] == "person" and position[0] < 250:
