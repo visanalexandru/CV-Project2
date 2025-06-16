@@ -27,14 +27,15 @@ def distance_point_to_line(point, line):
 # the lowest part of the bounding box. This way, it's approximately on the
 # street, so we can apply the homography matrix to map it to another camera
 # view.
-def get_keypoints(frame, homography):
+def get_keypoints(frame, current_camera, other_camera, homography):
     objects = frame.get_objects()
     keypoints = []
 
     for object in objects:
         x1, y1, x2, y2 = object["bbox"]
 
-        keypoint = np.array(((x1+x2)//2, y2)).reshape(1, 1, 2).astype(np.float32)
+        position = ((x1+ x2)//2, y2)
+        keypoint = np.array(position).reshape(1, 1, 2).astype(np.float32)
         transformed_keypoint = cv.perspectiveTransform(keypoint, homography).squeeze()
         transformed_keypoint = transformed_keypoint.astype(np.int32)
 
@@ -43,9 +44,21 @@ def get_keypoints(frame, homography):
             continue
         if transformed_keypoint[1] < 0 or transformed_keypoint[1] >= FRAME_HEIGHT:
             continue
+        
+        if current_camera == "B" and other_camera == "A":
+            # This is not visible in camera A
+            if position[0] > 800 and position[0] <1060 and position[1] < 800:
+                continue
+
+        if object["class"] == "person" and position[0] < 250:
+            continue
+
+        width = (x2 - x1)
+        if object["class"] == "car" and width < 50:
+            continue
             
         keypoints.append({
-            "position": ((x1+x2)//2, y2),
+            "position": position,
             "class": object["class"]
         })
 
@@ -81,4 +94,4 @@ def get_assignment(keypoints1, keypoints2, homography):
     unmatched = [i for i in range(len(keypoints2)) if i not in indices_2]
     cost += len(unmatched) * max_distance # Penalize unmatched objects
 
-    return assignment, cost, unmatched
+    return assignment, cost 

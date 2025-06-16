@@ -16,8 +16,6 @@ CAMERA_A_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_a_night.png")
 CAMERA_B_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_b_night.png")
 CAMERA_C_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_c_night.png")
 
-detection_model = YOLO("yolov9e.pt")
-
 class Frame:
     def __init__(self, frame):
         self.frame_ = frame 
@@ -28,31 +26,37 @@ class Frame:
     def get_objects(self):
         return self.objects_
 
-def extract_objects(result):
+def extract_objects(result, previous_objects):
     names = result.names
     objects = []
 
     for box in result.boxes:
+        id = int(box.id)
         label = int(box.cls.item())
         cls = names[label]
         x1, y1, x2, y2 = box.xyxy[0]
         x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
         bbox = [x1, y1, x2, y2]
+        center = ((x1 + x2) // 2, (y1 + y2) // 2) 
+        should_return = True 
 
-        if cls not in ["car", "truck", "bus", "motorcycle", "bicycle"]:
-            continue
+        if cls not in ["car", "truck", "bus", "motorcycle", "bicycle", "person"]:
+            should_return = False
+
+        if cls in ["car", "truck", "bus"]:
+            cls = "car"
 
         obj = {
             "class": cls,
-            "bbox": bbox
+            "bbox": bbox,
+            "confidence": box.conf.item(),
+            "center": center,
         }
+        
+        if should_return:
+            objects.append(obj)
 
-        area = (x2 - x1) * (y2 - y1)
-        if area < 4000:  # Filter out small objects
-            continue
-
-        objects.append(obj)
-
+        previous_objects[id] = obj
     return objects
 
 class Video:
@@ -75,9 +79,32 @@ class Video:
         return len(self.frames_)
     
     def do_tracking(self):
-        for frame in self.frames_:
-            result = detection_model.predict(frame.raw(), verbose=False, iou=0.1, agnostic_nms=True)[0]
-            frame.objects_ = extract_objects(result)
+        detection_model = YOLO("yolov9e.pt")
+        ids_to_objects = dict()
+
+        result = detection_model.track(
+            self.frames_[0].raw(), 
+            verbose=False, 
+            persist=True, 
+            tracker="./trackers/bytetrack.yaml", 
+            conf=0.25, 
+            iou=0.2, 
+            agnostic_nms=True
+            )[0]
+
+        self.frames_[0].objects_ = extract_objects(result, ids_to_objects)
+
+        for frame in self.frames_[1:]:
+            result = detection_model.track(
+                frame.raw(), 
+                verbose=False, 
+                persist=True, 
+                tracker="./trackers/bytetrack.yaml", 
+                conf=0.25, 
+                iou=0.2, 
+                agnostic_nms=True
+            )[0]
+            frame.objects_ = extract_objects(result, ids_to_objects)
 
 
 # Loads a video from the given path and returns a Video object.
