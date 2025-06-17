@@ -79,33 +79,38 @@ class Video:
         return len(self.frames_)
     
     def do_tracking(self):
-        detection_model = YOLO("yolov9e.pt")
-        ids_to_objects = dict()
+        moving_average = []
 
-        result = detection_model.track(
-            self.frames_[0].raw(), 
-            verbose=False, 
-            persist=True, 
-            tracker="./trackers/bytetrack.yaml", 
-            conf=0.25, 
-            iou=0.2, 
-            agnostic_nms=True
-            )[0]
+        for frame in self.frames_:
+            frame.objects_ = []
 
-        self.frames_[0].objects_ = extract_objects(result, ids_to_objects)
+            raw = frame.raw().copy()
+            gray = cv.cvtColor(raw, cv.COLOR_RGB2GRAY)
 
-        for frame in self.frames_[1:]:
-            result = detection_model.track(
-                frame.raw(), 
-                verbose=False, 
-                persist=True, 
-                tracker="./trackers/bytetrack.yaml", 
-                conf=0.25, 
-                iou=0.2, 
-                agnostic_nms=True
-            )[0]
-            frame.objects_ = extract_objects(result, ids_to_objects)
+            if moving_average == []:
+                moving_average.append(gray.copy())
+                continue
 
+            background = np.median(np.array(moving_average), axis=0).astype(np.uint8)
+            moving_average.append(gray.copy())
+
+            if len(moving_average) == 10:
+                moving_average.pop(0)
+
+            difference = cv.absdiff(background, gray)
+            _, mask = cv.threshold(difference, 25, 255, cv.THRESH_BINARY)
+
+            mask = cv.morphologyEx(mask, cv.MORPH_DILATE, np.ones((3,3), np.uint8))
+            contours,_= cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+
+            for contour in contours:
+                x, y, w, h = cv.boundingRect(contour)
+                if cv.contourArea(contour)>400:
+                    frame.objects_.append({
+                        "class": "moving_object",
+                        "bbox": [x, y, x + w, y + h],
+                        "confidence": 1.0,
+                    })
 
 # Loads a video from the given path and returns a Video object.
 # If num_frames is specified, it will only load that many frames.

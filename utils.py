@@ -68,33 +68,20 @@ def get_keypoints(frame, current_camera, other_camera, homography):
     return keypoints
 
 def get_assignment(keypoints1, keypoints2, homography):
-    max_distance = np.linalg.norm([FRAME_WIDTH, FRAME_HEIGHT])
-    costs = np.ones((len(keypoints1), len(keypoints2))) * max_distance 
-
+    correct = 0
     for i, a in enumerate(keypoints1): 
+        pos1 = a["position"]
+        pos1_tmp = np.array([[pos1]]).astype(np.float32)
+        transformed = cv.perspectiveTransform(pos1_tmp, homography).squeeze()
+
+        min_distance = np.inf
+
         for j, b in enumerate(keypoints2):
-            pos1 = a["position"]
             pos2 = b["position"]
-
-            if a["class"] != b["class"]:
-                costs[i, j] = max_distance 
-                continue
-           
-            pos1_tmp = np.array([[pos1]]).astype(np.float32)
-            transformed = cv.perspectiveTransform(pos1_tmp, homography).squeeze()
-
             distance = np.linalg.norm(transformed - np.array(pos2))
-            costs[i, j] = distance
+            min_distance = min(min_distance, distance)
 
-    assignment = linear_sum_assignment(costs) 
+        if min_distance < 100:        
+            correct += 1
 
-    indices_1, indices_2 = assignment
-    cost = costs[indices_1, indices_2].sum()
-
-    unmatched = [i for i in range(len(keypoints1)) if i not in indices_1]
-    cost += len(unmatched) * max_distance # Penalize unmatched objects
-
-    unmatched = [i for i in range(len(keypoints2)) if i not in indices_2]
-    cost += len(unmatched) * max_distance # Penalize unmatched objects
-
-    return assignment, cost 
+    return correct 
