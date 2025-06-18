@@ -18,8 +18,7 @@ def draw_epiline(epiline, image, color):
 
 def distance_point_to_line(point, line):
     a, b, c = line
-    x0, y0 = point
-    return abs(a * x0 + b * y0 + c) / np.sqrt(a**2 + b**2)
+    return abs(a * point[:, 0]+ b * point[:, 1] + c) / np.sqrt(a**2 + b**2)
 
 
 # Iterates through all the object bounding boxes and extracts a point

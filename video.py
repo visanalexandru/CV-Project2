@@ -25,6 +25,9 @@ class Frame:
     
     def get_objects(self):
         return self.objects_
+    
+    def moving_pixels(self):
+        return self.moving_pixels_
 
 def extract_objects(result, previous_objects):
     names = result.names
@@ -88,6 +91,7 @@ class Video:
             gray = cv.cvtColor(raw, cv.COLOR_RGB2GRAY)
 
             if moving_average == []:
+                frame.moving_pixels_ = np.zeros(gray.shape, dtype=np.uint8) 
                 moving_average.append(gray.copy())
                 continue
 
@@ -102,6 +106,8 @@ class Video:
 
             mask = cv.morphologyEx(mask, cv.MORPH_DILATE, np.ones((3,3), np.uint8))
             contours,_= cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+
+            frame.moving_pixels_ = mask
 
             for contour in contours:
                 x, y, w, h = cv.boundingRect(contour)
