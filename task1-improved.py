@@ -9,6 +9,8 @@ from multiprocessing import Pool
 import os
 import glob
 
+JUMP_SIZE = 10 
+
 fundamental_matrices = {
     "A" : {
         "B": np.load("fundamental_matrices/AB.npy"),
@@ -134,7 +136,7 @@ def overlap_score(reference_start_index, F, H, H_inv):
     global query, reference
     num_query_frames = query.num_frames()
     score = 0
-    for t in range(0, num_query_frames, 10):
+    for t in range(0, num_query_frames, JUMP_SIZE):
         query_frame = query.get_frame(t)
         reference_frame = reference.get_frame(reference_start_index + t)
 
@@ -143,6 +145,9 @@ def overlap_score(reference_start_index, F, H, H_inv):
             score += cost
 
     return (reference_start_index, score)
+
+def overlap_score_star(args):
+    return overlap_score(*args)
 
 def solve_pair(query_path, reference_path):
     global fundamental_matrices, homography_matrices
@@ -174,11 +179,8 @@ def solve_pair(query_path, reference_path):
     num_reference_frames = reference.num_frames()
 
     with Pool() as pool:
-        args = [(i, F, H, H_inv) for i in range(0, num_reference_frames - num_query_frames + 1, 10)]
-        results = list(pool.starmap(overlap_score, tqdm(args)))
-
-    plt.plot([result[0] for result in results], [result[1] for result in results])
-    plt.show()
+        args = [(i, F, H, H_inv) for i in range(0, num_reference_frames - num_query_frames + 1, JUMP_SIZE)]
+        results = list(tqdm(pool.imap(overlap_score_star, args), total=len(args)))
 
     argmax = np.argmax([result[1] for result in results])
     print(results[argmax])
