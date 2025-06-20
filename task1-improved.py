@@ -185,6 +185,9 @@ def solve_pair(query_path, reference_path):
     argmax = np.argmax([result[1] for result in results])
     print(results[argmax])
 
+    query.release()
+    reference.release()
+
 queries = glob.glob("train/task1/*_query.mp4")
 queries = sorted(queries)
 

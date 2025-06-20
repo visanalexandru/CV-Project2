@@ -42,6 +42,14 @@ class Video:
             self.compute_camera()
         return self.camera_
     
+    def release(self):
+        for frame in self.frames_:
+            if hasattr(frame, 'frame_'):
+                del frame.frame_
+            if hasattr(frame, 'moving_pixels_'):
+                del frame.moving_pixels_
+        self.frames_ = []
+    
     def num_frames(self):
         return len(self.frames_)
     
@@ -59,7 +67,7 @@ class Video:
                 moving_average.append(gray.copy())
                 continue
 
-            background = np.median(np.array(moving_average), axis=0).astype(np.uint8)
+            background = np.mean(np.array(moving_average), axis=0).astype(np.uint8)
             moving_average.append(gray.copy())
 
             if len(moving_average) == 10:
@@ -91,6 +99,7 @@ def load_video(path, num_frames=None):
 
         if num_frames is not None and len(frames) >= num_frames:
             break
+    cap.release()
     return Video(frames)
 
 # Returns a cropped region of the frame that represents the content above the 
