@@ -160,8 +160,8 @@ def solve_pair(query_path, reference_path):
     reference = load_video(reference_path)
 
     print("Doing tracking on query and reference videos...")
-    query.do_tracking()
-    reference.do_tracking()
+    query.compute_moving_pixels()
+    reference.compute_moving_pixels()
 
     print("Establishing cameras...")
     camera_query = query.get_camera()
