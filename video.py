@@ -67,7 +67,7 @@ class Video:
                 moving_average.append(gray.copy())
                 continue
 
-            background = np.mean(np.array(moving_average), axis=0).astype(np.uint8)
+            background = np.median(np.array(moving_average), axis=0).astype(np.uint8)
             moving_average.append(gray.copy())
 
             if len(moving_average) == 10:
