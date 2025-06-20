@@ -23,44 +23,8 @@ class Frame:
     def raw(self):
         return self.frame_
     
-    def get_objects(self):
-        return self.objects_
-    
     def moving_pixels(self):
         return self.moving_pixels_
-
-def extract_objects(result, previous_objects):
-    names = result.names
-    objects = []
-
-    for box in result.boxes:
-        id = int(box.id)
-        label = int(box.cls.item())
-        cls = names[label]
-        x1, y1, x2, y2 = box.xyxy[0]
-        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-        bbox = [x1, y1, x2, y2]
-        center = ((x1 + x2) // 2, (y1 + y2) // 2) 
-        should_return = True 
-
-        if cls not in ["car", "truck", "bus", "motorcycle", "bicycle", "person"]:
-            should_return = False
-
-        if cls in ["car", "truck", "bus"]:
-            cls = "car"
-
-        obj = {
-            "class": cls,
-            "bbox": bbox,
-            "confidence": box.conf.item(),
-            "center": center,
-        }
-        
-        if should_return:
-            objects.append(obj)
-
-        previous_objects[id] = obj
-    return objects
 
 class Video:
     def __init__(self, frames):
@@ -81,7 +45,7 @@ class Video:
     def num_frames(self):
         return len(self.frames_)
     
-    def do_tracking(self):
+    def compute_moving_pixels(self):
         moving_average = []
 
         for frame in self.frames_:
@@ -105,18 +69,7 @@ class Video:
             _, mask = cv.threshold(difference, 25, 255, cv.THRESH_BINARY)
 
             mask = cv.morphologyEx(mask, cv.MORPH_DILATE, np.ones((3,3), np.uint8))
-            contours,_= cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-
             frame.moving_pixels_ = mask
-
-            for contour in contours:
-                x, y, w, h = cv.boundingRect(contour)
-                if cv.contourArea(contour)>400:
-                    frame.objects_.append({
-                        "class": "moving_object",
-                        "bbox": [x, y, x + w, y + h],
-                        "confidence": 1.0,
-                    })
 
 # Loads a video from the given path and returns a Video object.
 # If num_frames is specified, it will only load that many frames.
@@ -132,7 +85,6 @@ def load_video(path, num_frames=None):
         if not ret:
             break
 
-        frame = cv.resize(frame, (FRAME_WIDTH, FRAME_HEIGHT), cv.INTER_CUBIC)
         frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
 
         frames.append(Frame(frame))
