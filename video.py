@@ -25,6 +25,9 @@ class Frame:
     
     def moving_pixels(self):
         return self.moving_pixels_
+    
+    def objects(self):
+        return self.objects_
 
 class Video:
     def __init__(self, frames):
@@ -78,6 +81,43 @@ class Video:
 
             mask = cv.morphologyEx(mask, cv.MORPH_DILATE, np.ones((3,3), np.uint8))
             frame.moving_pixels_ = mask
+    
+    def do_tracking(self, visualize=False):
+        model = YOLO("yolov9c.pt")
+
+        names_to_classes = {v:k for k, v in model.names.items()}
+        names_to_track = ["car", "truck", "bus"]
+        classes_to_track = [names_to_classes[name] for name in names_to_track]
+
+        for frame in self.frames_:
+            result = model.predict(frame.raw(), 
+                                 agnostic_nms=True,
+                                 classes=classes_to_track,
+                                 conf=0.15,
+                                 iou=0.2,
+                                 imgsz=(FRAME_HEIGHT, FRAME_WIDTH),
+                                 )[0]
+            frame.objects_ = []
+            bounding_boxes = result.boxes.xyxy.cpu().numpy()
+
+            if visualize:
+                plot = result.plot()
+
+            for bbox in bounding_boxes:
+                x1, y1, x2, y2 = bbox 
+                x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+
+                frame.objects_.append({
+                    "bbox": (x1, y1, x2, y2),
+                })
+ 
+            if visualize:
+                cv.imshow("Tracking", plot)
+                cv.waitKey(1)
+
+        if visualize:
+            cv.destroyAllWindows()
+
 
 # Loads a video from the given path and returns a Video object.
 # If num_frames is specified, it will only load that many frames.
