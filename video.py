@@ -83,14 +83,15 @@ class Video:
             frame.moving_pixels_ = mask
     
     def do_tracking(self, visualize=False):
-        model = YOLO("yolov9c.pt")
+        model = YOLO("yolo11x.pt")
 
         names_to_classes = {v:k for k, v in model.names.items()}
         names_to_track = ["car", "truck", "bus"]
         classes_to_track = [names_to_classes[name] for name in names_to_track]
 
         for frame in self.frames_:
-            result = model.predict(frame.raw(), 
+            to_bgr = cv.cvtColor(frame.raw(), cv.COLOR_RGB2BGR)
+            result = model.predict(to_bgr, 
                                  agnostic_nms=True,
                                  classes=classes_to_track,
                                  conf=0.15,
