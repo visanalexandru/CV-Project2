@@ -49,3 +49,39 @@ def bb_intersection_over_union(boxA, boxB):
 
     # return the intersection over union value
     return iou
+
+
+def compare_trajectory(trajectory1, trajectory2, H, H_inv, threshold=150):
+    MAX_DISTANCE = FRAME_WIDTH + FRAME_HEIGHT
+
+    trajectory1 = filter_points_homography(trajectory1, H)
+    trajectory2 = filter_points_homography(trajectory2, H_inv)
+    
+    if len(trajectory2) == 0:
+        return len(trajectory1) * MAX_DISTANCE 
+    
+    transformed = cv.perspectiveTransform(trajectory1.reshape(-1, 1, 2).astype(np.float32), H).squeeze()
+
+    # Compute the minimum matching
+    costs = np.ones((len(trajectory1), len(trajectory2))) * MAX_DISTANCE 
+    for i in range(len(transformed)):
+        costs[i, :] = np.linalg.norm(transformed[i]- trajectory2, axis=1)
+
+    row_ind, col_ind = linear_sum_assignment(costs)
+    total_cost = costs[row_ind, col_ind].sum()
+
+    unassigned = [i for i in range(len(trajectory1)) if i not in row_ind]
+    total_cost += len(unassigned) * MAX_DISTANCE
+
+    return total_cost 
+
+# Removes those points that would be outside the frame when transformed to the other camera's frame.
+def filter_points_homography(points, H):
+    transformed_points = cv.perspectiveTransform(points.reshape(-1, 1, 2).astype(np.float32), H).squeeze()
+
+    in_bounds = np.logical_and(
+        np.logical_and(transformed_points[:, 0] >= 0, transformed_points[:, 0] < FRAME_WIDTH),
+        np.logical_and(transformed_points[:, 1] >= 0, transformed_points[:, 1] < FRAME_HEIGHT)
+    )
+
+    return points[in_bounds]
