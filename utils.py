@@ -62,10 +62,17 @@ def compare_trajectory(trajectory1, trajectory2, H, H_inv, threshold=150):
     
     transformed = cv.perspectiveTransform(trajectory1.reshape(-1, 1, 2).astype(np.float32), H).squeeze()
 
+    if np.linalg.norm(transformed[0] - trajectory2[0]) > threshold:
+        # If the first point is too far, we assume the trajectories are not matching
+        return len(trajectory1) * MAX_DISTANCE
+
     # Compute the minimum matching
     costs = np.ones((len(trajectory1), len(trajectory2))) * MAX_DISTANCE 
     for i in range(len(transformed)):
-        costs[i, :] = np.linalg.norm(transformed[i]- trajectory2, axis=1)
+        distances = np.linalg.norm(transformed[i] - trajectory2, axis=1)
+        distances[distances > threshold] = MAX_DISTANCE
+
+        costs[i, :] = distances 
 
     row_ind, col_ind = linear_sum_assignment(costs)
     total_cost = costs[row_ind, col_ind].sum()

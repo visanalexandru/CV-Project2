@@ -8,6 +8,9 @@ from ultralytics import YOLO
 FRAME_WIDTH = 1920 
 FRAME_HEIGHT = 1000 
 
+YOLO_IMWIDTH = 1920
+YOLO_IMHEIGHT = 1024 
+
 CAMERA_A_TEMPLATE_DAY = cv.imread("camera_templates/camera_a_day.png")
 CAMERA_B_TEMPLATE_DAY = cv.imread("camera_templates/camera_b_day.png")
 CAMERA_C_TEMPLATE_DAY = cv.imread("camera_templates/camera_c_day.png")
@@ -15,6 +18,8 @@ CAMERA_C_TEMPLATE_DAY = cv.imread("camera_templates/camera_c_day.png")
 CAMERA_A_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_a_night.png")
 CAMERA_B_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_b_night.png")
 CAMERA_C_TEMPLATE_NIGHT = cv.imread("camera_templates/camera_c_night.png")
+
+model = YOLO("yolo11x.pt")
 
 class Frame:
     def __init__(self, frame):
@@ -83,8 +88,6 @@ class Video:
             frame.moving_pixels_ = mask
     
     def do_tracking(self, visualize=False):
-        model = YOLO("yolo11x.pt")
-
         names_to_classes = {v:k for k, v in model.names.items()}
         names_to_track = ["car", "truck", "bus"]
         classes_to_track = [names_to_classes[name] for name in names_to_track]
@@ -96,7 +99,8 @@ class Video:
                                  classes=classes_to_track,
                                  conf=0.15,
                                  iou=0.2,
-                                 imgsz=(FRAME_HEIGHT, FRAME_WIDTH),
+                                 imgsz=(YOLO_IMHEIGHT, YOLO_IMWIDTH),
+                                 verbose=False,
                                  )[0]
             frame.objects_ = []
             bounding_boxes = result.boxes.xyxy.cpu().numpy()
