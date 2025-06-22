@@ -62,7 +62,7 @@ def compare_trajectory(trajectory1, trajectory2, H, H_inv, threshold=150):
     
     transformed = cv.perspectiveTransform(trajectory1.reshape(-1, 1, 2).astype(np.float32), H).squeeze()
 
-    if np.linalg.norm(transformed[0] - trajectory2[0]) > threshold:
+    if np.linalg.norm(transformed[0] - trajectory2[0]) > 2*threshold:
         # If the first point is too far, we assume the trajectories are not matching
         return len(trajectory1) * MAX_DISTANCE
 
