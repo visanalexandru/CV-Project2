@@ -3,17 +3,17 @@ from utils import *
 import numpy as np
 import cv2 as cv
 
-def find_best_intersection(objects, bounding_box, threshold=0.5):
-    max_iou = 0
+def find_best_intersection(objects, bounding_box):
+    max_area = 0
     best = None
 
     for object in objects:
         bb = object["bbox"] 
 
-        iou = bb_intersection_over_union(bb, bounding_box)
-        if iou > threshold and iou > max_iou:
+        area = bb_intersection(bb, bounding_box)
+        if area > max_area :
             best = object
-            max_iou = iou
+            max_area = area
 
     return best 
 
@@ -108,7 +108,7 @@ def compute_trajectory(video, initial_bbox, visualize=False):
         bounding_boxes.append(prediction)
 
         # Proritize finding the best intersection with existing objects
-        best_intersection = find_best_intersection(objects, prediction, threshold=0.2)
+        best_intersection = find_best_intersection(objects, prediction)
 
         found = None 
         if best_intersection is not None:
@@ -126,7 +126,7 @@ def compute_trajectory(video, initial_bbox, visualize=False):
         if visualize:
             cv.rectangle(plot, prediction[:2], prediction[2:], (255, 0, 0), 2)
             cv.imshow("tracking", plot)
-            cv.waitKey(100)
+            cv.waitKey(50)
 
     if visualize:
         cv.destroyAllWindows()
