@@ -2,6 +2,7 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 import numpy as np
 from ultralytics import YOLO
+from tqdm import tqdm
 
 # The original shape was 1920x1000
 # Change this if you want to use a different resolution.
@@ -92,7 +93,7 @@ class Video:
         names_to_track = ["car", "truck", "bus"]
         classes_to_track = [names_to_classes[name] for name in names_to_track]
 
-        for frame in self.frames_:
+        for frame in tqdm(self.frames_):
             to_bgr = cv.cvtColor(frame.raw(), cv.COLOR_RGB2BGR)
             result = model.predict(to_bgr, 
                                  agnostic_nms=True,

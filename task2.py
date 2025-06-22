@@ -100,14 +100,19 @@ def solve_pair(vid1_path, vid2_path):
     trajectory_a = compute_trajectory(a, initial_bbox, visualize=False)
 
     # Then, find the best matching trajectory in video b.
-    objects_b = b.get_frame(0).objects()
+    objects_b = []
+    # Take the objects in the first 10 frames, instead of just the objects in the first one.
+    # This helps reduce the chance of not finding the target in the first frame.
+    for i in range(min(10, b.num_frames())):
+        objects_b += b.get_frame(i).objects()
+
     best_trajectory = None
     min_cost = np.inf
 
     for object in objects_b:
         trajectory_b = compute_trajectory(b, object["bbox"], visualize=False)
 
-        cost = compare_trajectory(trajectory_a.trajectory(), trajectory_b.trajectory(), H, H_inv, threshold=300)
+        cost = compare_trajectory(trajectory_a.trajectory(), trajectory_b.trajectory(), H, H_inv, threshold=150)
         if cost < min_cost:
             min_cost = cost
             best_trajectory = trajectory_b
