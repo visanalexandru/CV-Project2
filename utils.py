@@ -50,6 +50,16 @@ def bb_intersection_over_union(boxA, boxB):
     # return the intersection over union value
     return iou
 
+def bb_intersection(boxA, boxB):
+    # determine the (x, y)-coordinates of the intersection rectangle
+    xA = max(boxA[0], boxB[0])
+    yA = max(boxA[1], boxB[1])
+    xB = min(boxA[2], boxB[2])
+    yB = min(boxA[3], boxB[3])
+
+    # compute the area of intersection rectangle
+    interArea = abs(max((xB - xA, 0)) * max((yB - yA), 0))
+    return interArea
 
 def compare_trajectory(trajectory1, trajectory2, H, H_inv, threshold=150):
     MAX_DISTANCE = FRAME_WIDTH + FRAME_HEIGHT
