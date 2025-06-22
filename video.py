@@ -98,7 +98,7 @@ class Video:
                                  agnostic_nms=True,
                                  classes=classes_to_track,
                                  conf=0.15,
-                                 iou=0.2,
+                                 iou=0.5,
                                  imgsz=(YOLO_IMHEIGHT, YOLO_IMWIDTH),
                                  verbose=False,
                                  )[0]
