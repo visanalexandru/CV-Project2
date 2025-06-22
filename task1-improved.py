@@ -41,17 +41,6 @@ homography_matrices = {
     }
 }
 
-# Removes those points that would be outside the frame when transformed to the other camera's frame.
-def filter_points_homography(points, H):
-    transformed_points = cv.perspectiveTransform(points.reshape(-1, 1, 2).astype(np.float32), H).squeeze()
-
-    in_bounds = np.logical_and(
-        np.logical_and(transformed_points[:, 0] >= 0, transformed_points[:, 0] < FRAME_WIDTH),
-        np.logical_and(transformed_points[:, 1] >= 0, transformed_points[:, 1] < FRAME_HEIGHT)
-    )
-
-    return points[in_bounds]
-
 def similarity_epipolar(query, reference, F, H, H_inv, visualize=False):
     moving_pixels_query = query.moving_pixels()
     moving_pixels_reference = reference.moving_pixels()
