@@ -8,6 +8,8 @@ from ultralytics import RTDETR
 from multiprocessing import Pool
 import os
 import glob
+import argparse
+from pathlib import Path
 
 JUMP_SIZE = 10 
 
@@ -177,13 +179,30 @@ def solve_pair(query_path, reference_path):
     query.release()
     reference.release()
 
-queries = glob.glob("train/task1/*_query.mp4")
+    return results[argmax][0]
+
+parser = argparse.ArgumentParser("task1")
+parser.add_argument("evaluation_dir", help="Directory where all the video pairs are stored.")
+parser.add_argument("output_dir", help="Directory where the solution files will be created.")
+args = parser.parse_args()
+
+evaluation_dir = args.evaluation_dir
+output_dir = args.output_dir
+
+# Make sure the output directory exists.
+Path(os.path.join(output_dir, "task1")).mkdir(parents=True, exist_ok=True)
+
+queries = glob.glob(os.path.join(evaluation_dir, "task1/*_query.mp4"))
 queries = sorted(queries)
 
-references = glob.glob("train/task1/*_reference.mp4")
+references = glob.glob(os.path.join(evaluation_dir, "task1/*_reference.mp4"))
 references = sorted(references)
 
-
 for query_path, reference_path in zip(queries, references):
-    solve_pair(query_path, reference_path)
+    output_filename = os.path.basename(query_path)
+    output_filename = f"{output_filename[:2]}_predicted.txt" 
 
+    result = solve_pair(query_path, reference_path)
+
+    with open(os.path.join(output_dir, "task1", output_filename), "w") as f:
+        f.write(f"{result}")
