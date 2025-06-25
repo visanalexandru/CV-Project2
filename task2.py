@@ -9,6 +9,8 @@ from multiprocessing import Pool
 from tracking import *
 import glob
 import os
+import argparse
+from pathlib import Path
 
 fundamental_matrices = {
     "A" : {
@@ -49,7 +51,7 @@ def read_box(path):
     _index, x1, y1, x2, y2 = list(map(int , box.split(" ")))
     return (x1, y1, x2, y2)
 
-def output_trajectory(video, trajectory, output_path):
+def output_trajectory_video(video, trajectory, output_path):
     fourcc = cv.VideoWriter_fourcc(*'mp4v')
     out = cv.VideoWriter(output_path, fourcc, 20.0, (FRAME_WIDTH,  FRAME_HEIGHT))
 
@@ -62,21 +64,20 @@ def output_trajectory(video, trajectory, output_path):
     
     out.release()
 
-vids1 = glob.glob("train/task2/*_1.mp4")
-vids1 = sorted(vids1)
+def output_trajectory_text(video, trajectory, output_path):
+    boxes = trajectory.bounding_boxes()
 
-vids2 = glob.glob("train/task2/*_2.mp4")
-vids2 = sorted(vids2)
+    with open(output_path, "w") as file:
+        file.write(f"{video.num_frames()} -1 -1 -1 -1\n")
 
-def solve_pair(vid1_path, vid2_path):
+        for i in range(len(boxes)):
+            bounding_box = trajectory.bounding_boxes()[i]
+            file.write(f"{i} {bounding_box[0]} {bounding_box[1]} {bounding_box[2]} {bounding_box[3]}\n")
+
+def solve_pair(vid1_path, vid2_path, output_dir):
     global fundamental_matrices, homography_matrices
 
     print("Processing pair:", vid1_path, vid2_path)
-
-    vid1_base = os.path.basename(vid1_path)
-    vid2_base = os.path.basename(vid2_path)
-
-    print(vid1_base, vid2_base)
 
     print("Loading videos...")
     a = load_video(vid1_path)
@@ -118,10 +119,37 @@ def solve_pair(vid1_path, vid2_path):
             best_trajectory = trajectory_b
 
     print("Writing results...")
-    output_trajectory(a, trajectory_a, os.path.join("results", vid1_base)) 
-    output_trajectory(b, best_trajectory, os.path.join("results", vid2_base)) 
 
+    vid1_base = os.path.basename(vid1_path)
+    vid2_base = os.path.basename(vid2_path)
+
+    output_trajectory_video(a, trajectory_a, os.path.join(output_dir, "task2", vid1_base)) 
+    output_trajectory_video(b, best_trajectory, os.path.join(output_dir, "task2", vid2_base)) 
+
+    textfile1_base = f"{vid1_base[:2]}_1_predicted.txt"
+    textfile2_base = f"{vid2_base[:2]}_2_predicted.txt"
+
+    output_trajectory_text(a, trajectory_a, os.path.join(output_dir, "task2", textfile1_base)) 
+    output_trajectory_text(b, best_trajectory, os.path.join(output_dir, "task2", textfile2_base)) 
+
+    return trajectory_a, best_trajectory
+
+parser = argparse.ArgumentParser("task2")
+parser.add_argument("evaluation_dir", help="Directory where all the video pairs are stored.")
+parser.add_argument("output_dir", help="Directory where the solution files will be created.")
+args = parser.parse_args()
+
+evaluation_dir = args.evaluation_dir
+output_dir = args.output_dir
+
+vids1 = glob.glob(os.path.join(evaluation_dir, "task2/*_1.mp4"))
+vids1 = sorted(vids1)
+
+vids2 = glob.glob(os.path.join(evaluation_dir, "task2/*_2.mp4"))
+vids2 = sorted(vids2)
+
+# Make sure the output directory exists.
+Path(os.path.join(output_dir, "task2")).mkdir(parents=True, exist_ok=True)
 
 for vid1, vid2 in zip(vids1, vids2):
-    print(vid1, vid2)
-    solve_pair(vid1, vid2)
+    solve_pair(vid1, vid2, output_dir)
