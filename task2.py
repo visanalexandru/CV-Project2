@@ -64,6 +64,24 @@ def output_trajectory_video(video, trajectory, output_path):
     
     out.release()
 
+def point_inside_window(point):
+    x, y = point
+    return 0 <= x < FRAME_WIDTH and 0 <= y < FRAME_HEIGHT
+
+# Check if any of the four corners of the bounding box are inside the window.
+def bounding_box_inside_window(bounding_box):
+    x1, y1, x2, y2 = bounding_box
+
+    point1 = (x1, y1)
+    point2 = (x1, y2)
+    point3 = (x2, y1)
+    point4 = (x2, y2) 
+    return point_inside_window(point1) or point_inside_window(point2) or point_inside_window(point3) or point_inside_window(point4)
+
+def is_degenerate(bounding_box):
+    x1, y1, x2, y2 = bounding_box
+    return x1 >= x2 or y1 >= y2
+
 def output_trajectory_text(video, trajectory, output_path):
     boxes = trajectory.bounding_boxes()
 
@@ -72,7 +90,27 @@ def output_trajectory_text(video, trajectory, output_path):
 
         for i in range(len(boxes)):
             bounding_box = trajectory.bounding_boxes()[i]
-            file.write(f"{i} {bounding_box[0]} {bounding_box[1]} {bounding_box[2]} {bounding_box[3]}\n")
+
+            if not bounding_box_inside_window(bounding_box):
+                continue
+            if is_degenerate(bounding_box):
+                continue
+
+            x1, y1, x2, y2 = bounding_box
+
+            x1 = max(0, x1)
+            x1 = min(FRAME_WIDTH - 1, x1)
+
+            x2 = max(0, x2)
+            x2 = min(FRAME_WIDTH - 1, x2)
+
+            y1 = max(0, y1)
+            y1 = min(FRAME_HEIGHT - 1, y1)
+
+            y2 = max(0, y2)
+            y2 = min(FRAME_HEIGHT - 1, y2)
+
+            file.write(f"{i} {x1} {y1} {x2} {y2}\n")
 
 def solve_pair(vid1_path, vid2_path, output_dir):
     global fundamental_matrices, homography_matrices
